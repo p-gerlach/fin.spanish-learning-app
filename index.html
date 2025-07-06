@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn Spanish - AI Language Tutor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="loginScreen" class="login-container">
+        <h1>🎓 Welcome!</h1>
+        <p>Ready to start your language learning journey?<br>Let's make it personal!</p>
+        <input
+            type="text"
+            id="nameInput"
+            class="name-input"
+            placeholder="What's your name?"
+            maxlength="20"
+        >
+        <button class="start-btn" onclick="startLearning()" id="startButton" disabled>
+            Start Learning! 🚀
+        </button>
+    </div>
+
+    <div id="mainApp" class="app-container" style="display: none;">
+        <div class="header">
+            <h1 id="appTitle">🇪🇸 Spanish Tutor</h1>
+            <p>Learn Spanish vocabulary with AI-powered flashcards and quizzes</p>
+        </div>
+
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="setMode('flashcards')">Flashcards</button>
+            <button class="mode-btn" onclick="setMode('quiz')">Quiz</button>
+            <button class="mode-btn" onclick="setMode('grammar')">Grammar</button>
+        </div>
+
+        <div class="language-selector">
+            <button class="lang-btn active" onclick="setLanguage('es-en')">🇪🇸 → 🇬🇧</button>
+            <button class="lang-btn" onclick="setLanguage('es-de')">🇪🇸 → 🇩🇪</button>
+            <button class="lang-btn" onclick="setLanguage('en-es')">🇬🇧 → 🇪🇸</button>
+            <button class="lang-btn" onclick="setLanguage('de-es')">🇩🇪 → 🇪🇸</button>
+        </div>
+
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="learning-area">
+            <div id="flashcardMode" class="flashcard">
+                <div class="word-display" id="wordDisplay">Hola</div>
+                <div class="translation" id="translation">Click to reveal translation</div>
+            </div>
+
+            <div id="quizMode" class="quiz-container" style="display: none;">
+                <div class="question" id="quizQuestion">What does "Hola" mean?</div>
+                <div class="options" id="quizOptions"></div>
+                <div class="feedback" id="feedback"></div>
+            </div>
+
+            <div id="grammarMode" style="display: none;">
+                <h2>Grammar Lessons</h2>
+                <!-- Level Selector -->
+                <div id="levelSelector" style="margin-bottom: 20px;"></div>
+                <!-- Topic Selector -->
+                <div id="topicSelector" style="margin-bottom: 20px;"></div>
+                <!-- Lesson List -->
+                <div id="lessonList" style="margin-bottom: 20px;"></div>
+                <!-- Lesson Content -->
+                <div id="grammarContent"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn secondary" onclick="previousCard()">Previous</button>
+            <button class="btn" onclick="nextCard()">Next</button>
+            <button class="btn secondary" onclick="shuffleCards()">Shuffle</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number" id="currentCard">1</div>
+                <div class="stat-label">Current</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="totalCards">20</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="correctAnswers">0</div>
+                <div class="stat-label">Correct</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="vocabulary.js"></script>
+    <script src="grammar.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
