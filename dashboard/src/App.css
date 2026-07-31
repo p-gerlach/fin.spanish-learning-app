@@ -98,6 +98,12 @@
   cursor: not-allowed;
 }
 
+.form-error {
+  margin-top: 12px;
+  color: #e74c3c;
+  font-size: 13px;
+}
+
 .job-card {
   background: var(--bg);
   border: 1px solid var(--border);

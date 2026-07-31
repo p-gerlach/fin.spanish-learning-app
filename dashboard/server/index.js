@@ -2,9 +2,9 @@
 // (loaded from .env below) and the ONLY thing allowed to call kie.ai.
 // The React app never talks to kie.ai directly.
 //
-// This is step 1 (skeleton) of the build order in CLAUDE.md: just get the
-// server running. The real /api/generate and /api/status/:taskId routes
-// (with fake data first, then real kie.ai calls) come in later steps.
+// Build-order step 2 (server plumbing): the two routes below return FAKE
+// data — no request to kie.ai happens yet. That comes in step 3, once we
+// have a real model spec pasted from docs.kie.ai to code against.
 
 import "dotenv/config";
 import cors from "cors";
@@ -18,6 +18,28 @@ app.use(express.json());
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+app.post("/api/generate", (req, res) => {
+  const { model, params } = req.body;
+  console.log("Fake generate request:", { model, params });
+
+  // Real kie.ai call comes in step 3. For now, fake a task_id so React
+  // has something to track.
+  const taskId = `fake-task-${Date.now()}`;
+  res.json({ taskId });
+});
+
+app.get("/api/status/:taskId", (req, res) => {
+  console.log("Fake status check for:", req.params.taskId);
+
+  // Real kie.ai "Get Task Details" call comes in step 4. For now, every
+  // job is instantly "done" with a placeholder result.
+  res.json({
+    status: "done",
+    resultUrl: "https://placehold.co/400x300?text=Fake+Result",
+    error: null,
+  });
 });
 
 app.listen(PORT, () => {
