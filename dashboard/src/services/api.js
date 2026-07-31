@@ -19,8 +19,9 @@ export async function submitGeneration(model, input) {
 
 export async function getJobStatus(taskId) {
   const res = await fetch(`${SERVER_URL}/api/status/${taskId}`);
+  const data = await res.json();
   if (!res.ok) {
-    throw new Error(`Failed to get job status (status ${res.status})`);
+    throw new Error(data.error || `Failed to get job status (status ${res.status})`);
   }
-  return res.json(); // { status, resultUrl, error } — still fake, see build-order step 4
+  return data; // { state, resultUrls, failMsg }
 }

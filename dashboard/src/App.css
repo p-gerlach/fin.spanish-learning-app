@@ -128,17 +128,25 @@
   text-transform: capitalize;
 }
 
-.status-pending {
+.status-waiting,
+.status-queuing,
+.status-generating {
   background: rgba(255, 193, 7, 0.15);
   color: #ffc107;
 }
 
-.status-done {
+.status-success {
   background: rgba(46, 204, 113, 0.15);
   color: #2ecc71;
 }
 
-.status-failed {
+.status-fail {
   background: rgba(231, 76, 60, 0.15);
   color: #e74c3c;
+}
+
+.job-card-error {
+  margin: 0;
+  color: #e74c3c;
+  font-size: 13px;
 }

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import JobForm from "./components/JobForm.jsx";
 import JobCard from "./components/JobCard.jsx";
-import { submitGeneration, getJobStatus } from "./services/api.js";
+import { submitGeneration } from "./services/api.js";
 import { MODELS } from "./models.js";
+import usePolling from "./hooks/usePolling.js";
 import "./App.css";
 
 function App() {
@@ -11,6 +12,12 @@ function App() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  const updateJob = useCallback((id, changes) => {
+    setJobs((prev) => prev.map((job) => (job.id === id ? { ...job, ...changes } : job)));
+  }, []);
+
+  usePolling(jobs, updateJob);
+
   async function handleSubmit({ model, prompt }) {
     setSubmitting(true);
     setError(null);
@@ -18,22 +25,12 @@ function App() {
       const input = MODELS[model].buildInput(prompt);
       const { taskId } = await submitGeneration(model, input);
 
+      // "waiting" is kie.ai's own starting state — usePolling picks this
+      // job up on its next 3s tick and carries it through to success/fail.
       setJobs((prev) => [
-        { id: taskId, model, prompt, status: "pending", resultUrl: null, createdAt: Date.now() },
+        { id: taskId, model, prompt, status: "waiting", resultUrl: null, failMsg: null, createdAt: Date.now() },
         ...prev,
       ]);
-
-      // taskId above is now a REAL kie.ai task id (step 3). The status check
-      // below is still fake — GET /api/status is wired to real "Get Task
-      // Details" data in step 4, so this still reports a canned "done".
-      const result = await getJobStatus(taskId);
-      setJobs((prev) =>
-        prev.map((job) =>
-          job.id === taskId
-            ? { ...job, status: result.status, resultUrl: result.resultUrl }
-            : job,
-        ),
-      );
     } catch (err) {
       setError(err.message);
     } finally {
