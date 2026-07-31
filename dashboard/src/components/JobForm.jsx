@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { MODELS } from "../models.js";
+
+const MODEL_IDS = Object.keys(MODELS);
 
 // Model picker + prompt box + Generate button.
-// Only one fake model for now — real models get added once their exact
-// kie.ai spec (endpoint + params) has been pasted in, per CLAUDE.md section 5.
 function JobForm({ onSubmit, submitting }) {
-  const [model, setModel] = useState("test-model");
+  const [model, setModel] = useState(MODEL_IDS[0]);
   const [prompt, setPrompt] = useState("");
 
   function handleSubmit(e) {
@@ -20,7 +21,11 @@ function JobForm({ onSubmit, submitting }) {
 
       <label htmlFor="model">Model</label>
       <select id="model" value={model} onChange={(e) => setModel(e.target.value)}>
-        <option value="test-model">Test model (fake data)</option>
+        {MODEL_IDS.map((id) => (
+          <option key={id} value={id}>
+            {MODELS[id].label}
+          </option>
+        ))}
       </select>
 
       <label htmlFor="prompt">Prompt</label>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import JobForm from "./components/JobForm.jsx";
 import JobCard from "./components/JobCard.jsx";
 import { submitGeneration, getJobStatus } from "./services/api.js";
+import { MODELS } from "./models.js";
 import "./App.css";
 
 function App() {
@@ -14,15 +15,17 @@ function App() {
     setSubmitting(true);
     setError(null);
     try {
-      const { taskId } = await submitGeneration(model, { prompt });
+      const input = MODELS[model].buildInput(prompt);
+      const { taskId } = await submitGeneration(model, input);
 
       setJobs((prev) => [
         { id: taskId, model, prompt, status: "pending", resultUrl: null, createdAt: Date.now() },
         ...prev,
       ]);
 
-      // Step 2 just proves the round trip works with a single status check.
-      // Real repeated polling (usePolling.js) comes in step 4.
+      // taskId above is now a REAL kie.ai task id (step 3). The status check
+      // below is still fake — GET /api/status is wired to real "Get Task
+      // Details" data in step 4, so this still reports a canned "done".
       const result = await getJobStatus(taskId);
       setJobs((prev) =>
         prev.map((job) =>

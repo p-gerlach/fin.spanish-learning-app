@@ -89,52 +89,94 @@ dashboard/
 
 ## 5. How kie.ai requests actually look
 
-Base URL: `https://api.kie.ai`
+Base URL: `https://api.kie.ai`. There is **one create endpoint and one status
+endpoint for every Market model** — only the `model` string and `input` object
+change per model.
 
-Auth header on every request (from the SERVER only):
-```
-Authorization: Bearer YOUR_API_KEY
-Content-Type: application/json
-```
+### Create a task
 
-If the key/header is wrong, kie.ai returns:
+`POST https://api.kie.ai/api/v1/jobs/createTask`
+
 ```json
-{ "code": 401, "msg": "You do not have access permissions" }
+{
+  "model": "<model string>",
+  "input": { "...model-specific fields...": "..." }
+}
 ```
+`callBackUrl` is optional — omit it, we're polling.
 
-Each model has its own generate endpoint and its own parameters — the exact
-path and body for a chosen model come from that model's page under
-https://docs.kie.ai (e.g. Seedream, Kling, Suno, etc.). Do NOT invent
-endpoint paths or parameter names — if a model's exact spec isn't in this
-file yet, ask me to paste it from its docs page before writing that call.
+Success response:
+```json
+{ "code": 200, "msg": "success", "data": { "taskId": "task_gptimage_1765180586443" } }
+```
+The field is `taskId` (camelCase) inside `data`.
 
-Checking status uses the common **Get Task Details** endpoint (one endpoint
-works across models): https://docs.kie.ai/market/common/get-task-detail
-Use the `task_id` to query it. Again, confirm its exact path/response shape
-from that page before coding against it — don't guess field names.
+### Check status
+
+`GET https://api.kie.ai/api/v1/jobs/recordInfo?taskId=<taskId>`
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "taskId": "task_12345678",
+    "state": "success",
+    "resultJson": "{\"resultUrls\":[\"https://example.com/generated-content.jpg\"]}",
+    "failCode": "",
+    "failMsg": "",
+    "progress": 45
+  }
+}
+```
+- `state` is the status: `waiting`, `queuing`, `generating`, `success`, `fail`.
+  Keep polling while waiting/queuing/generating, stop on success/fail.
+- `resultJson` is a **string** — `JSON.parse(data.resultJson)` to get
+  `{ resultUrls: ["https://..."] }`. On failure read `failMsg`/`failCode`.
+
+If the key/header is wrong, kie.ai returns `{ "code": 401, "msg": "You do not
+have access permissions" }`.
 
 Other facts to respect:
 - Rate limit: ~20 new generation requests per 10 seconds, else HTTP 429.
   Handle 429 gracefully (show "rate limited, retrying" — don't crash).
+- Poll every ~3s, give up after 10–15 minutes and mark the job timed-out.
+- Result URLs expire fast (~24h) and generated files are deleted after 14
+  days — treat every result URL as temporary.
 - Failed tasks are not charged.
-- Generated files are deleted after 14 days — treat result URLs as temporary.
+- The `recordInfo` endpoint can also return 400, 401, 404, 422, 429, 500 —
+  don't crash on these, show the job as failed with the message.
 
-> ✏️ FILL IN: the specific model(s) this dashboard uses, and paste each one's
-> endpoint path + request body fields + result field names from its docs page.
-> Until that's here, only the app skeleton and status-polling can be built.
+### Models currently wired up (see `src/models.js`)
+
+- **GPT Image 2** (image) — model string `gpt-image-2-text-to-image`.
+  `input`: `prompt` (string), `aspect_ratio` (e.g. "auto", "1:1", "16:9").
+- **Seedance 2.0** (video) — model string `bytedance/seedance-2`.
+  `input` (text-to-video only for now): `prompt`, `resolution` (e.g.
+  "720p"), `aspect_ratio` (e.g. "16:9"), `duration` (seconds), `generate_audio`
+  (bool). Image/reference fields (`first_frame_url`, `reference_*_urls`, etc.)
+  are mutually exclusive modes, skipped for this first version.
+  Siblings `bytedance/seedance-2-fast` and `bytedance/seedance-2-mini` use the
+  same endpoints but aren't confirmed to share the same `input` fields — check
+  their own docs pages before using.
+
+Adding another model = add an entry to `src/models.js` with its real model
+string and `input` fields from its docs.kie.ai page — don't guess them.
 
 ---
 
 ## 6. The server's two jobs (only two routes)
 
 1. `POST /api/generate`
-   - Receives `{ model, params }` from the React app.
-   - Adds the Authorization header, forwards to the right kie.ai generate
-     endpoint, and returns the `task_id` to React.
+   - Receives `{ model, input }` from the React app.
+   - Adds the Authorization header, forwards `{ model, input }` to
+     `createTask`, and returns `{ taskId: data.data.taskId }` to React.
 
 2. `GET /api/status/:taskId`
-   - Calls kie.ai's Get Task Details endpoint with the key.
-   - Returns a simplified `{ status, resultUrl, error }` to React.
+   - Calls `recordInfo` with the key.
+   - Parses `resultJson` (it's a string) and returns a simplified
+     `{ state, resultUrls, failMsg }` to React — so React never has to do
+     the `JSON.parse` itself.
 
 Keep it this small. No database — jobs live in React state for now.
 
@@ -144,17 +186,17 @@ Keep it this small. No database — jobs live in React state for now.
 
 ```
 {
-  id,            // task_id from kie.ai
-  model,         // which model was used
+  id,            // taskId from kie.ai
+  model,         // which model string was used
   prompt,        // what the user typed
-  status,        // 'pending' | 'done' | 'failed'
-  resultUrl,     // filled in when done
+  status,        // 'waiting' | 'queuing' | 'generating' | 'success' | 'fail'
+  resultUrl,     // filled in when status is 'success'
   createdAt
 }
 ```
 
 `usePolling.js` checks `GET /api/status/:taskId` every 3s for each pending job
-and stops polling once it's done or failed.
+and stops polling once status is `success` or `fail`.
 
 ---
 
